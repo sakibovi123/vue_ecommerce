@@ -1,0 +1,226 @@
+{% extends 'Store/base.html' %}
+
+{% block content %}
+
+
+<div id="cartApp">
+<div class="row justify-content-center">
+    <div class="col-auto">
+      <table class="table table-responsive">
+
+       <tr>
+           <th>Prodcut image</th>
+           <th>Prodcut Name</th>
+           <th>Prodcut Quantity</th>
+           <th>Prodcut Price</th>
+       </tr>
+
+       <tr class="table-light" v-for="product in products">
+           <td style="font-size: 16px;">s</td>
+            <td>[[product.name]]</td>
+            <td><button class="btn btn-success" style="font-size: 10px; " @click="decreaseQuantity(product.id)">+</button>[[product.quantity]]<button class="btn btn-danger" style="font-size: 5px;" @click="increaseQuantity(product.id, product.quantity)"> - </button></td>
+            <td>[[product.total_price]]</td>
+            <td><button @click="removeProduct(product.id)">Remove</button></td>
+       </tr>
+       <tr>
+           <td> {{cart.get_total_cost}}</td>
+       </tr>
+
+           <form class="form-control" v-on:submit.prevent="submitForm()">
+           <tr><td><input type="text" name="first_name" v-model="first_name" class="form-control" placeholder="Enter First Name"></td></tr>
+           <tr><td><input type="text" name="last_name" v-model="last_name" class="form-control" placeholder="Enter Last Name"></td></tr>
+           <tr><td><input type="text" name="city" v-model="city" class="form-control" placeholder="Enter Address"></td></tr>
+           <tr><td><input type="text" name="address" v-model="address" class="form-control" placeholder="Enter Address"></td></tr>
+           <tr><td><input type="text" name="zip_code" v-model="zip_code" class="form-control" placeholder="Enter Zipcode"></td></tr>
+           <tr><td><button type="submit" class="btn btn-info">Checkout</button></td></tr>
+           </form>
+
+    <button @click="Click()">Hi</button>
+
+
+    </div>
+  </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue@2.6.12/dist/vue.js"></script>
+
+
+  <script type="text/javascript">
+      var productapp = new Vue({
+        el: "#cartApp",
+        delimiters: ['[[', ']]'],
+        data () {
+          return {
+            first_name: '',
+            last_name: '',
+            city: '',
+            address: '',
+            zip_code: '',
+            products: [{{productString|safe}}]
+          }
+        },
+        mounted() {
+          console.log("Mounted")
+          console.log(this.products)
+        },
+        methods: {
+
+            Click(){
+                console.log("Clicked");
+            },
+          submitForm(){
+            console.log('form')
+
+            var data = {
+              'first_name': this.first_name,
+              'last_name': this.last_name,
+              'city': this.city,
+              'address': this.address,
+              'zip_code': this.zip_code,
+
+            };
+
+            console.log(data);
+
+
+          fetch('/api/api_checkout', {
+          method: 'POST',
+          headers: {
+            'Content-type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}',
+          },
+
+          credentials: 'same-origin',
+          body: JSON.stringify(data)
+
+
+        })
+        .then((response) =>  {
+          console.log("Success");
+          console.log(response);
+
+          window.location.href = '/';
+
+        })
+        .catch(function (error) {
+          console.log("Error Number 2");
+        })
+          },
+
+          decreaseQuantity(product_id, quantity){
+            console.log('product_id:', product_id);
+            var data = {
+            'product_id': product_id,
+            'update': true,
+            'quantity': parseInt(quantity) - 1
+          };
+
+          fetch('/api/add_to_cart', {
+            method: 'POST',
+            headers: {
+              'Content-type': 'application/json',
+              'X-CSRFToken': '{{ csrf_token }}',
+            },
+
+            credentials: 'same-origin',
+            body: JSON.stringify(data),
+          })
+          .then((response) => {
+            console.log(response);
+
+            for(var i=0; i<this.products.length; i++){
+            var product = this.products[i]
+
+            if(product.id === product_id){
+              this.products[i].quantity = parseInt(this.products[i].quantity) - 1;
+              this.products[i].total_price = parseInt(this.products[i].quantity) * parseFloat(this.products[i].price);
+            }
+          }
+
+          })
+          .catch(function (error) {
+          console.log("Error Number 2");
+          })
+
+          },
+
+
+
+          increaseQuantity(product_id, quantity){
+          console.log('product_id:', product_id);
+
+        var data = {'product_id': product_id, 'update': true, 'quantity': parseInt(quantity) +1};
+
+
+        fetch('/api/add_to_cart', {
+          method: 'POST',
+          headers: {
+            'Content-type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}',
+          },
+
+          credentials: 'same-origin',
+          body: JSON.stringify(data)
+
+
+        })
+        .then((response) =>  {
+          console.log(response);
+
+          for(var i=0; i<this.products.length; i++){
+            var product = this.products[i]
+
+            if(product.id === product_id){
+              this.products[i].quantity = parseInt(this.products[i].quantity) + 1;
+              this.products[i].total_price = parseInt(this.products[i].quantity) * parseFloat(this.products[i].price);
+            }
+          }
+
+        })
+        .catch(function (error) {
+          console.log("Error Number 2");
+        })
+          },
+
+          removeProduct(product_id){
+            console.log('product_id:',product_id);
+            var data = {
+              'product_id': product_id
+            };
+
+            fetch('/api/api_remove_from_cart', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': '{{ csrf_token }}',
+            },
+
+          credentials: 'same-origin',
+          body: JSON.stringify(data)
+        })
+        .then((response) =>  {
+          console.log(response);
+          this.products = this.products.filter(product.id !== product_id)
+        })
+        .catch(function (error) {
+          console.log("Error Number 2");
+        })
+
+
+          }
+        }
+      });
+
+    </script>
+
+
+
+
+
+
+
+
+
+
+{% endblock %}
